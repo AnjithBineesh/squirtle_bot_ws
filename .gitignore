@@ -1,0 +1,33 @@
+# Python byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# ROS 2 workspace generated files
+build/
+install/
+log/
+
+# LGPIO runtime notification pipes
+.lgd-*
+
+# Logs and captured assets
+*.log
+air_drawing.png
+
+# IDE / Editor configuration
+.vscode/
+.idea/
+*.swp
+*~
+
+# System files
+.DS_Store
+Thumbs.db
