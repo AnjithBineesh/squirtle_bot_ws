@@ -1,0 +1,166 @@
+================================================================================
+                    SQUIRTLE BOT — ROBOT CALIBRATION DATA
+================================================================================
+Generated: 2026-11-22
+Workspace: /home/squirtle_bot/squirtle_bot_ws
+Hardware:  Raspberry Pi 5 + L298N Motor Driver + Quadrature Optical Encoders + MPU6050 IMU
+
+--------------------------------------------------------------------------------
+1. PHYSICAL GEOMETRY & ROBOT DIMENSIONS
+--------------------------------------------------------------------------------
+Wheel Diameter (nominal):             0.060 m   (6.0 cm / 60.0 mm)
+Wheel Radius (nominal):               0.030 m   (3.0 cm / 30.0 mm)
+Physical Wheel Base (track width):    0.140 m   (14.0 cm / 140.0 mm)
+Calibrated Effective Wheel Base:      0.285 m   (28.5 cm / 285.0 mm)
+  * Note on Calibrated Wheel Base: Compensates for physical tire scrubbing and
+    wheel slip during in-place differential turning maneuvers. Derived from
+    a full 360-degree rotation benchmark (765 left ticks, -417 right ticks).
+
+--------------------------------------------------------------------------------
+2. ENCODER CALIBRATION & RESOLUTION
+--------------------------------------------------------------------------------
+Left Encoder:
+  - Channel A (BCM GPIO):             20        (Physical Pin 38)
+  - Channel B (BCM GPIO):             21        (Physical Pin 40)
+  - Direction Inverted:               False
+  - Measured Resolution:              149.0 ticks / revolution
+  - Default Resolution Constant:      149 ticks / revolution
+
+Right Encoder:
+  - Channel A (BCM GPIO):             26        (Physical Pin 37)
+  - Channel B (BCM GPIO):             19        (Physical Pin 35)
+  - Direction Inverted:               True
+  - Measured Resolution:              151.44 ticks / revolution (~151.4)
+  - Default Resolution Constant:      151.44 ticks / revolution
+
+Encoding Scheme:
+  - Quadrature state decoding (tracks transitions on channels A & B)
+  - State transitions filtered to reject simultaneous two-bit jump noise
+
+--------------------------------------------------------------------------------
+3. ODOMETRY & TRACTION CALIBRATION
+--------------------------------------------------------------------------------
+Odometry Distance Scale Factor:       1.21      (121.0% traction multiplier)
+  * Note on Distance Scale: Accounts for tire deformation, ground-truth floor
+    surface traction, and wheel-tread rolling radius under robot weight.
+
+Empirical 1.00 Meter Calibration Run Benchmark:
+  - Left Encoder Measured:            649 ticks
+  - Right Encoder Measured:           666 ticks
+  - Calibrated Linear Distance:       1.000 m
+  - Conversion Formula:
+      distance = (ticks / ticks_per_rev) * pi * wheel_diameter * distance_scale
+      Left:  (649 / 149.00) * pi * 0.06 * 1.21 = 0.993 m (~1.0 m)
+      Right: (666 / 151.44) * pi * 0.06 * 1.21 = 1.003 m (~1.0 m)
+
+--------------------------------------------------------------------------------
+4. MOTOR CONTROLLER & TRIM CALIBRATION (L298N)
+--------------------------------------------------------------------------------
+Left Motor Driver Pins:
+  - ENA (PWM Speed):                  GPIO 12   (Physical Pin 32)
+  - IN1 (Direction):                  GPIO 17   (Physical Pin 11)
+  - IN2 (Direction):                  GPIO 18   (Physical Pin 12)
+  - Motor Polarity Inverted:          True
+  - Speed Trim Offset:                +2.0%     (LEFT_MOTOR_SPEED_TRIM_PERCENT)
+    * Compensates for mechanical gearbox friction difference between left & right.
+
+Right Motor Driver Pins:
+  - ENB (PWM Speed):                  GPIO 13   (Physical Pin 33)
+  - IN3 (Direction):                  GPIO 27   (Physical Pin 13)
+  - IN4 (Direction):                  GPIO 22   (Physical Pin 15)
+  - Motor Polarity Inverted:          True
+  - Speed Trim Offset:                0.0%      (Baseline reference)
+
+PWM & Operating Limits:
+  - PWM Frequency:                    1000 Hz
+  - Minimum PWM (Friction Deadband):  25.0%     (MIN_PWM duty cycle threshold)
+  - Maximum Safe PWM Limit:           100%
+  - Nominal Straight-Drive Speed:     30% PWM   (INITIAL_TEST_SPEED)
+  - Default WASD Teleop Speed:        25% PWM
+  - Dynamic Brake Duration:           0.10 s    (MOTOR_BRAKE_TIME_S)
+  - Watchdog Failsafe Timeout:        0.50 s    (Automatic motor cutoff)
+
+--------------------------------------------------------------------------------
+5. CLOSED-LOOP MOTION & BRAKING MARGINS
+--------------------------------------------------------------------------------
+Wheel-Speed Synchronization (Straight Drives):
+  - Sync Check Interval:              0.20 s    (SYNC_INTERVAL_S)
+  - Speed Proportional Gain (Kp):     30.0      (Rate error feedback)
+  - Position Proportional Gain (Kpos): 50.0     (Cumulative travel error feedback)
+  - Maximum PWM Correction:           +/- 8%    (MAX_SYNC_CORRECTION)
+
+Distance Drive Braking Margin:
+  - Cutoff Margin:                    0.02 m    (2.0 cm before target)
+    * Cuts motor drive 2 cm early to let momentum settle exactly at target.
+  - Maximum Drive Timeout:            15.0 s
+
+In-Place Turning & Heading Compensation:
+  - Left Turn Brake Margin:           4.2 deg   (LEFT_TURN_BRAKE_MARGIN_DEG)
+  - Right Turn Brake Margin:          5.1 deg   (RIGHT_TURN_BRAKE_MARGIN_DEG)
+  - Heading Compensation Offset:      1.5 deg   (TURN_HEADING_COMPENSATION_DEG)
+  - Turn Deceleration Schedule:
+      * Remaining Angle > 25 deg:     Base Speed (30% PWM)
+      * Remaining Angle <= 25 deg:    Slow approach (max 20% PWM)
+      * Remaining Angle <= 10 deg:    Fine approach (max 20% PWM)
+      * Target <= 10 deg:             Offset margin: -0.25 deg
+      * Target <= 20 deg:             Offset margin: -0.50 deg
+      * Target > 20 deg:              Target - Margin - Compensation
+  - Maximum Turn Timeout:             15.0 s
+
+--------------------------------------------------------------------------------
+6. IMU CALIBRATION & SENSOR FUSION (MPU6050)
+--------------------------------------------------------------------------------
+Hardware Communication:
+  - Interface:                        I2C Bus 1
+  - Device Address:                   0x68
+  - SDA (I2C Data):                   GPIO 2    (Physical Pin 3)
+  - SCL (I2C Clock):                  GPIO 3    (Physical Pin 5)
+
+Gyroscope Sensor Calibration:
+  - Gyro Sensitivity Scale:           131.0 LSB / (deg/s)  (FS_SEL=0, +/-250 deg/s)
+  - Zero-Rate Bias Calibration:       Averaged over 200 samples at 100 Hz (0.01 s)
+                                      while the robot is stationary
+  - Calibrated Angular Rate:          rate = (raw_reading - bias) / 131.0
+
+Sensor Fusion & Heading Estimation:
+  - Static Heading Fusion Weight:     0.85      (85% Gyro, 15% Encoders)
+  - Dynamic Time Constant (Tau):      5.0 s     (ENCODER_CORRECTION_TIME_CONSTANT_S)
+  - Encoder Correction Weight:        weight = exp(-dt / 5.0)
+
+================================================================================
+                 SUPPLEMENTARY ROS 2 / WOBBLE_BOT PARAMETERS
+================================================================================
+Odometry Node (odometry.yaml):
+  - wheel_radius:                     0.0335 m
+  - left_wheel_radius:                0.0638 m
+  - right_wheel_radius:               0.0638 m
+  - wheel_base:                       0.3100 m
+  - wheel_base_scale:                 1.0000
+  - ticks_per_rev:                    1320
+  - left_distance_scale:              1.0000
+  - right_distance_scale:             1.0000
+  - publish_rate_hz:                  50.0 Hz
+  - pose_covariance_xy:               0.02
+  - pose_covariance_yaw:              0.08
+  - twist_covariance_linear:          0.05
+  - twist_covariance_angular:         0.10
+
+Motor Node (motor.yaml):
+  - wheel_base:                       0.31 m
+  - max_linear_speed:                 0.50 m/s
+  - min_pwm:                          35
+  - max_pwm:                          100
+  - pwm_frequency:                    100 Hz
+  - left_invert:                      False
+  - right_invert:                     False
+  - cmd_timeout_sec:                  0.50 s
+
+IMU Node (imu.yaml):
+  - publish_rate_hz:                  100.0 Hz
+  - complementary_gain:               0.02
+  - accel_alpha:                      0.20
+  - gyro_alpha:                       0.35
+  - calibration_file:                 ~/.ros2/imu_calibration.json
+  - mount_roll / pitch / yaw:         0.0 deg, 0.0 deg, 0.0 deg
+================================================================================
+
